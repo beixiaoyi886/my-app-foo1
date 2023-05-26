@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Menu, Input, Button } from "antd";
+import ContentLayout from "./ContentLayout.jsx";
 import styled from "styled-components";
 import { useSelector, useDispatch } from "react-redux";
 import { updateData } from "../redux/updateMethods.js";
 import { cloneDeep } from "lodash";
+import { Link } from "react-router-dom";
 async function fetchMenuItems() {
   try {
     const response = await fetch("./defaultMenuItems.json", {
@@ -99,16 +101,21 @@ function Layout() {
     }
   };
 
-  const renderMenuItems = (items) => {
+  const renderMenuItems = (items, parentPath = "") => {
     return items.map((item) => {
+      const path = `${parentPath}/${item.key}`;
       if (item.children) {
         return (
           <Menu.SubMenu key={item.key} title={item.name}>
-            {renderMenuItems(item.children)}
+            {renderMenuItems(item.children, path)}
           </Menu.SubMenu>
         );
       }
-      return <Menu.Item key={item.key}>{item.name}</Menu.Item>;
+      return (
+        <Menu.Item key={item.key}>
+          <Link to={`${path}`}>{item.name}</Link>
+        </Menu.Item>
+      );
     });
   };
   // 递归获取item
@@ -163,22 +170,24 @@ function Layout() {
         >
           {renderMenuItems(menuItems)}
         </MenuDiv>
-        <ContentDiv>
-          当前菜单：{selectedMenu}
-          <Input
-            style={{ width: "200px" }}
-            value={editedMenuName}
-            onChange={handleInputChange}
-            placeholder="输入新菜单名称"
-          />
-          <Button
-            style={{ marginLeft: "10px" }}
-            type="primary"
-            onClick={handleSaveClick}
-          >
-            保存
-          </Button>
-        </ContentDiv>
+        <ContentLayout menuData={menuItems}>
+          <ContentDiv>
+            {/* 当前菜单：{selectedMenu} */}
+            <Input
+              style={{ width: "200px" }}
+              value={editedMenuName}
+              onChange={handleInputChange}
+              placeholder="输入新菜单名称"
+            />
+            <Button
+              style={{ marginLeft: "10px" }}
+              type="primary"
+              onClick={handleSaveClick}
+            >
+              保存
+            </Button>
+          </ContentDiv>
+        </ContentLayout>
       </ContainerDiv>
     </div>
   );
