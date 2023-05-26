@@ -1,0 +1,12 @@
+[
+    { "key": "menu1", "name": "菜单一" },
+    {
+      "key": "menu2",
+      "name": "子菜单2-1",
+      "children": [
+        { "key": "menu2-1", "name": "子菜单2-1" },
+        { "key": "menu2-2", "name": "子菜单2-2" }
+      ]
+    },
+    { "key": "menu3", "name": "菜单三" }
+  ]

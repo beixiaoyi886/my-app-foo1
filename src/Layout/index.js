@@ -2,19 +2,24 @@ import React, { useEffect, useState } from "react";
 import { Menu, Input, Button } from "antd";
 import styled from "styled-components";
 
-// 此数据为默认的menuItems
-const defaultMenuItems = [
-  { key: "menu1", name: "菜单一" },
-  {
-    key: "menu2",
-    name: "子菜单2-1",
-    children: [
-      { key: "menu2-1", name: "子菜单2-1" },
-      { key: "menu2-2", name: "子菜单2-2" },
-    ],
-  },
-  { key: "menu3", name: "菜单三" },
-];
+async function fetchMenuItems() {
+  try {
+    const response = await fetch("./defaultMenuItems.json", {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    });
+    const data = await response.json();
+    // 在这里处理获取到的 JSON 数据
+    console.log(data);
+    return data;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
 const HeaderDiv = styled.div`
   width: 100%;
   min-width: 100px;
@@ -35,10 +40,8 @@ const ContentDiv = styled.div`
 function Layout() {
   const [selectedMenu, setSelectedMenu] = useState("menu1"); // 当前选择的菜单项，默认为'menu1'
   const [editedMenuName, setEditedMenuName] = useState("");
-  //从浏览器获取或使用默认
-  const _MenuItems =
-    JSON.parse(sessionStorage.getItem("MENUITEMS")) || defaultMenuItems;
-  const [menuItems, setMenuItems] = useState(_MenuItems);
+  //使用后端存储的数据
+  const [menuItems, setMenuItems] = useState([]);
   // menu的选择
   const handleMenuSelect = ({ key }) => {
     setSelectedMenu(key); // 更新当前选择的菜单项
@@ -118,6 +121,19 @@ function Layout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMenu]);
 
+  useEffect(() => {
+    // 从后端获取数据初始化menuItems
+    const _excu = async () => {
+      const data = await fetchMenuItems();
+      setMenuItems(data);
+    };
+    const cacheMenuItems = JSON.parse(sessionStorage.getItem("MENUITEMS"));
+    if (cacheMenuItems && cacheMenuItems.length > 0) {
+      setMenuItems(cacheMenuItems);
+    } else {
+      _excu();
+    }
+  }, []);
   return (
     <div>
       <HeaderDiv />
