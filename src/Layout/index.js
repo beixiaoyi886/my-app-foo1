@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Menu, Input, Button } from "antd";
 import styled from "styled-components";
-
+import { useSelector, useDispatch } from "react-redux";
+import { updateData } from "../redux/updateMethods.js";
+import { cloneDeep } from "lodash";
 async function fetchMenuItems() {
   try {
     const response = await fetch("./defaultMenuItems.json", {
@@ -12,7 +14,6 @@ async function fetchMenuItems() {
     });
     const data = await response.json();
     // 在这里处理获取到的 JSON 数据
-    console.log(data);
     return data;
   } catch (error) {
     console.error(error);
@@ -38,6 +39,7 @@ const ContentDiv = styled.div`
   flex: 1;
 `;
 function Layout() {
+  const dispatch = useDispatch();
   const [selectedMenu, setSelectedMenu] = useState("menu1"); // 当前选择的菜单项，默认为'menu1'
   const [editedMenuName, setEditedMenuName] = useState("");
   //使用后端存储的数据
@@ -52,8 +54,12 @@ function Layout() {
   };
   // 更新menuItems
   function updateMenuItems(list) {
-    setMenuItems([...list]);
-    sessionStorage.setItem("MENUITEMS", JSON.stringify(list));
+    const arr = [...list];
+
+    // 不再使用storage，转为redux
+    // sessionStorage.setItem("MENUITEMS", JSON.stringify(list));
+    dispatch(updateData([...arr]));
+    setMenuItems(arr);
   }
   // 按钮保存
   const handleSaveClick = () => {
@@ -67,21 +73,27 @@ function Layout() {
         }
         // while遍历数据，进行更新
         const traverseTree = (data, key, value) => {
-          const stack = [...data];
-          while (stack.length > 0) {
-            const node = stack.pop();
-            if (node?.key === key) {
-              node.name = value;
-            }
-            if (node.children && node.children.length > 0) {
-              stack.push(...node.children);
-            }
-          }
-          updateMenuItems([...data]);
+          const updateNodeValue = (data, key, value) => {
+            return data.map((ma) => {
+              if (ma.key === key) {
+                return { ...ma, name: value };
+              } else if (ma.children && ma.children.length > 0) {
+                return {
+                  ...ma,
+                  children: updateNodeValue(ma.children, key, value),
+                };
+              } else {
+                return ma;
+              }
+            });
+          };
+          const clonedData = cloneDeep(data);
+          const updatedData = updateNodeValue(clonedData, key, value);
+          updateMenuItems(updatedData);
         };
         traverseTree(menuItems, key, name);
 
-        setEditedMenuName(getItemByKey(selectedMenu)?.name);
+        // setEditedMenuName(getItemByKey(selectedMenu)?.name);
       }
       save(selectedMenu, updatedMenuName);
     }
@@ -121,15 +133,20 @@ function Layout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMenu]);
 
+  const cacheMenuItems = useSelector((state) => state.data);
   useEffect(() => {
     // 从后端获取数据初始化menuItems
     const _excu = async () => {
       const data = await fetchMenuItems();
       setMenuItems(data);
+      setEditedMenuName(getItemByKey(selectedMenu, [...data])?.name);
     };
-    const cacheMenuItems = JSON.parse(sessionStorage.getItem("MENUITEMS"));
+    // 不再使用storage，转为redux
+    // const cacheMenuItems = JSON.parse(sessionStorage.getItem("MENUITEMS"));
     if (cacheMenuItems && cacheMenuItems.length > 0) {
-      setMenuItems(cacheMenuItems);
+      setMenuItems([...cacheMenuItems]);
+
+      setEditedMenuName(getItemByKey(selectedMenu, [...cacheMenuItems])?.name);
     } else {
       _excu();
     }
@@ -147,8 +164,7 @@ function Layout() {
           {renderMenuItems(menuItems)}
         </MenuDiv>
         <ContentDiv>
-          {/* 当前菜单：{selectedMenu} */}
-
+          当前菜单：{selectedMenu}
           <Input
             style={{ width: "200px" }}
             value={editedMenuName}
